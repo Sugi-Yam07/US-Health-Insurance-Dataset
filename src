@@ -1,1 +1,107 @@
+import warnings
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy import stats
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
+# Desativar FutureWarning do Seaborn
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+# Carregar os dados
+data = pd.read_csv('insurance.csv')
+
+# Converter variáveis categóricas em numéricas
+data['sex'] = data['sex'].map({'male': 0, 'female': 1})
+data['smoker'] = data['smoker'].map({'no': 0, 'yes': 1})
+data = pd.get_dummies(data, columns=['region'])
+
+# Convertendo booleanos para inteiros
+data['sex'] = data['sex'].astype(int)
+data['smoker'] = data['smoker'].astype(int)
+
+# Análise Exploratória de Dados (EDA)
+# Visualizar a distribuição das variáveis no conjunto de dados
+plt.figure(figsize=(12, 8))
+sns.pairplot(data)
+plt.title('Pairplot das Variáveis')
+plt.show()
+
+# Identificar correlações entre as variáveis
+correlation_matrix = data.corr()
+plt.figure(figsize=(10, 6))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm')
+plt.title('Matriz de Correlação')
+plt.show()
+
+# Explorar características como idade, sexo, IMC, número de filhos, fumante e região, e como elas afetam os encargos do seguro
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='smoker', y='charges', data=data)
+plt.title('Encargos do Seguro por Fumante/Não Fumante')
+plt.show()
+
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='sex', y='charges', data=data)
+plt.title('Encargos do Seguro por Gênero')
+plt.show()
+
+# Teste de Hipótese Estatística
+# Testar se há diferenças significativas nos encargos do seguro entre fumantes e não fumantes
+smoker_charges = data[data['smoker'] == 1]['charges']
+non_smoker_charges = data[data['smoker'] == 0]['charges']
+
+t_statistic, p_value = stats.ttest_ind(smoker_charges, non_smoker_charges)
+print("Teste t para fumantes e não fumantes:")
+print("Estatística t:", t_statistic)
+print("Valor de p:", p_value)
+
+# Verificar se há uma diferença significativa nos encargos do seguro entre homens e mulheres
+male_charges = data[data['sex'] == 0]['charges']
+female_charges = data[data['sex'] == 1]['charges']
+
+t_statistic, p_value = stats.ttest_ind(male_charges, female_charges)
+print("\nTeste t para homens e mulheres:")
+print("Estatística t:", t_statistic)
+print("Valor de p:", p_value)
+
+# Modelagem Estatística
+# Preparar dados para modelagem
+X = data.drop('charges', axis=1)
+y = data['charges']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Treinar modelo de regressão linear
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Avaliar qualidade do modelo
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print("\nMSE:", mse)
+print("R²:", r2)
+
+# Relatório
+print("""
+Relatório de Análise e Modelagem de Dados de Seguros de Saúde
+
+1. Análise Exploratória de Dados (EDA):
+   - Pairplot das Variáveis: O pairplot mostra a relação entre todas as variáveis do conjunto de dados.
+   - Matriz de Correlação: A matriz de correlação destaca as correlações entre as variáveis, onde valores mais próximos de 1 ou -1 indicam uma correlação forte.
+
+2. Exploração de Características:
+   - Encargos do Seguro por Fumante/Não Fumante: Mostra a diferença nos encargos entre fumantes e não fumantes.
+   - Encargos do Seguro por Gênero: Mostra como os encargos do seguro variam entre homens e mulheres.
+
+3. Teste de Hipótese Estatística:
+   - Teste t para fumantes e não fumantes: Verifica se há diferença significativa nos encargos entre fumantes e não fumantes.
+   - Teste t para homens e mulheres: Verifica se há diferença significativa nos encargos entre homens e mulheres.
+
+4. Modelagem Estatística:
+   - Modelo de Regressão Linear: Um modelo de regressão linear foi desenvolvido para prever os encargos do seguro com base nos atributos dos segurados.
+   - Avaliação do Modelo: O modelo foi avaliado quanto ao erro quadrático médio (MSE) e ao coeficiente de determinação (R²).
+
+""")
